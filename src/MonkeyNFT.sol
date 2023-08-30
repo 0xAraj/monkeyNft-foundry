@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity 0.8.20;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
@@ -41,7 +41,7 @@ contract MonkeyNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Owna
     //Track no. of NFTs minted per wallet
     mapping(address user => uint256 noOfNftMinted) public s_mintedWallet;
     //Track whether a address is whitelisted or not
-    mapping(address user => bool isWhiteListed) public s_whiteListAddress;
+    mapping(address user => bool isWhiteListed) private s_whiteListAddress;
 
     //Events
     event MintedNFT(address indexed buyer, uint256 indexed tokenId, uint256 indexed quantity);
@@ -288,6 +288,16 @@ contract MonkeyNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Owna
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    //Getter functions
+
+    function getBaseUri() external pure returns (string memory) {
+        return _baseURI();
+    }
+
+    function getWhiteListAddress() external view returns (bool) {
+        return s_whiteListAddress[msg.sender];
     }
 }
 
