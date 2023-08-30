@@ -12,10 +12,12 @@ contract MonkeyNFTUnitTest is Test {
     address USER = makeAddr("user");
 
     event Whitelist(address user);
+    event MintedNFT(address indexed buyer, uint256 indexed tokenId, uint256 indexed quantity);
 
     function setUp() external {
         deployMonkeyNFT = new DeployMonkeyNFT();
         monkeyNFT = deployMonkeyNFT.run();
+        vm.deal(USER, 100 ether);
     }
 
     function testNameAndSymbolIsSetCorrectly() public view {
@@ -75,5 +77,164 @@ contract MonkeyNFTUnitTest is Test {
         uint256 totalWhitelistAddress = monkeyNFT.TOTAL_WHITELIST_ADDRESS();
         assert(totalWhitelistAddress == 1);
         assert(monkeyNFT.getWhiteListAddress());
+    }
+
+    function testRevertPublicMintIfQuantityIsZero() public {
+        uint256 quantity = 0;
+        vm.startPrank(USER);
+        vm.expectRevert();
+        monkeyNFT.publicMint(quantity);
+    }
+
+    function testRevertPublicMintIfTotalSupplyExcededMaxSupply() public {
+        uint256 quantity = 2;
+        uint256 priceOfOneNFT = 0.01 ether;
+        uint256 amount = quantity * priceOfOneNFT;
+
+        for (uint160 i = 1; i <= 1000; i++) {
+            hoax(address(i), 1 ether);
+            monkeyNFT.publicMint{value: amount}(quantity);
+        }
+
+        uint256 totalSupply = monkeyNFT.totalSupply();
+        assert(totalSupply == 2000);
+        vm.expectRevert();
+        monkeyNFT.publicMint(1);
+    }
+
+    function testRevertPublicMintIfExactPriceIsNotPaid() public {
+        uint256 priceOfOneNFT = 0.01 ether;
+        uint256 quantity = 2;
+        uint256 amount = 1 * priceOfOneNFT;
+
+        vm.startPrank(USER);
+        vm.expectRevert();
+        monkeyNFT.publicMint{value: amount}(quantity);
+    }
+
+    function testRevertPublicMintIfMintPerWalletIsMoreThanThree() public {
+        uint256 priceOfOneNFT = 0.01 ether;
+        uint256 quantity = 3;
+        uint256 amount = quantity * priceOfOneNFT;
+
+        vm.startPrank(USER);
+        monkeyNFT.publicMint{value: amount}(quantity);
+
+        vm.expectRevert();
+        monkeyNFT.publicMint{value: 0.01 ether}(1);
+    }
+
+    function testPublicMintShouldMintAndUpdateData() public {
+        uint256 priceOfOneNFT = 0.01 ether;
+        uint256 quantity = 3;
+        uint256 amount = quantity * priceOfOneNFT;
+
+        vm.startPrank(USER);
+        monkeyNFT.publicMint{value: amount}(quantity);
+
+        uint256 balanceOfUser = monkeyNFT.balanceOf(USER);
+        uint256 numberOfMintedNft = monkeyNFT.getMintedPerWallet();
+
+        assert(balanceOfUser == quantity);
+        assert(numberOfMintedNft == quantity);
+    }
+
+    function testPublicMintShouldEmitEvent() public {
+        uint256 priceOfOneNFT = 0.01 ether;
+        uint256 quantity = 2;
+        uint256 amount = quantity * priceOfOneNFT;
+
+        vm.startPrank(USER);
+        vm.expectEmit(address(monkeyNFT));
+        emit MintedNFT(USER, 1, quantity); // you can also give 0 at place of 1
+        monkeyNFT.publicMint{value: amount}(quantity);
+    }
+
+    function testRevertWhitelistMintIfQuantityIsZero() public {
+        uint256 quantity = 0;
+        uint256 amount = quantity * 0.001 ether;
+        vm.startPrank(USER);
+        monkeyNFT.getWhiteList();
+        vm.expectRevert();
+        monkeyNFT.whiteListMint{value: amount}(quantity);
+        vm.stopPrank();
+    }
+
+    function testRevertWhitelistMintIfTotalSupplyExcededMaxSupply() public {
+        uint256 quantity = 2;
+        uint256 priceOfOneNFT = 0.01 ether;
+        uint256 amount = quantity * priceOfOneNFT;
+
+        for (uint160 i = 1; i <= 1000; i++) {
+            hoax(address(i), 1 ether);
+            monkeyNFT.publicMint{value: amount}(quantity);
+        }
+
+        uint256 totalSupply = monkeyNFT.totalSupply();
+        assert(totalSupply == 2000);
+        vm.expectRevert();
+        monkeyNFT.whiteListMint{value: 1 * 0.01 ether}(1);
+    }
+
+    function testRevertWhitelistMintIfUserIsNotWhitelisted() public {
+        uint256 quantity = 2;
+        uint256 priceOfOneNFT = 0.01 ether;
+        uint256 amount = quantity * priceOfOneNFT;
+
+        vm.startPrank(USER);
+        vm.expectRevert();
+        monkeyNFT.whiteListMint{value: amount}(quantity);
+    }
+
+    function testRevertWhitelistMintIfExactPriceIsNotPaid() public {
+        uint256 priceOfOneNFT = 0.001 ether;
+        uint256 quantity = 2;
+        uint256 amount = 1 * priceOfOneNFT;
+
+        vm.startPrank(USER);
+        monkeyNFT.getWhiteList();
+        vm.expectRevert();
+        monkeyNFT.whiteListMint{value: amount}(quantity);
+    }
+
+    function testRevertwhitelistMintIfMintPerWalletIsMoreThanThree() public {
+        uint256 priceOfOneNFT = 0.001 ether;
+        uint256 quantity = 3;
+        uint256 amount = quantity * priceOfOneNFT;
+
+        vm.startPrank(USER);
+        monkeyNFT.getWhiteList();
+        monkeyNFT.whiteListMint{value: amount}(quantity);
+
+        vm.expectRevert();
+        monkeyNFT.whiteListMint{value: 0.001 ether}(1);
+    }
+
+    function testWhitelistMintShouldMintAndUpdateData() public {
+        uint256 priceOfOneNFT = 0.001 ether;
+        uint256 quantity = 3;
+        uint256 amount = quantity * priceOfOneNFT;
+
+        vm.startPrank(USER);
+        monkeyNFT.getWhiteList();
+        monkeyNFT.whiteListMint{value: amount}(quantity);
+
+        uint256 balanceOfUser = monkeyNFT.balanceOf(USER);
+        uint256 numberOfMintedNft = monkeyNFT.getMintedPerWallet();
+
+        assert(balanceOfUser == quantity);
+        assert(numberOfMintedNft == quantity);
+    }
+
+    function testWhitelistMintShouldEmitEvent() public {
+        uint256 priceOfOneNFT = 0.001 ether;
+        uint256 quantity = 2;
+        uint256 amount = quantity * priceOfOneNFT;
+
+        vm.startPrank(USER);
+        monkeyNFT.getWhiteList();
+        vm.expectEmit(address(monkeyNFT));
+        emit MintedNFT(USER, 1, quantity); // you can also give 0 at place of 1
+        monkeyNFT.whiteListMint{value: amount}(quantity);
     }
 }

@@ -37,9 +37,9 @@ contract MonkeyNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Owna
     NFTdetails[] public s_allListedNFTs;
 
     //Keeps track of all minted NFTs
-    mapping(uint256 tokenId => NFTdetails) public s_mintedNFTs;
+    mapping(uint256 tokenId => NFTdetails) private s_mintedNFTs;
     //Track no. of NFTs minted per wallet
-    mapping(address user => uint256 noOfNftMinted) public s_mintedWallet;
+    mapping(address user => uint256 noOfNftMinted) private s_mintedWallet;
     //Track whether a address is whitelisted or not
     mapping(address user => bool isWhiteListed) private s_whiteListAddress;
 
@@ -298,6 +298,14 @@ contract MonkeyNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Owna
 
     function getWhiteListAddress() external view returns (bool) {
         return s_whiteListAddress[msg.sender];
+    }
+
+    function getMintedPerWallet() external view returns (uint256) {
+        return s_mintedWallet[msg.sender];
+    }
+
+    function getMintedNFT(uint256 tokenId) external view returns (NFTdetails memory) {
+        return s_mintedNFTs[tokenId];
     }
 }
 
