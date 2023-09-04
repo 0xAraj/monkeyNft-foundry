@@ -34,7 +34,13 @@ contract MonkeyNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Owna
     }
     // Array of all listed NFTs on our marketplace
 
-    NFTdetails[] public s_allListedNFTs;
+    NFTdetails[] private s_allListedNFTs;
+
+    //You can't access struct from mapping to test uing a getter function, so I've made this public struct that will return struct that is in mapping.It has been used in getter function which is down.
+    NFTdetails public forTestingPurposeOnly;
+
+    //This will return your all NFTs
+    NFTdetails[] private yourNFTs;
 
     //Keeps track of all minted NFTs
     mapping(uint256 tokenId => NFTdetails) private s_mintedNFTs;
@@ -181,6 +187,7 @@ contract MonkeyNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Owna
     */
     function updateListPrice(uint256 tokenId, uint256 _listPrice) public {
         require(_listPrice > 0, "Price is zero!");
+        require(s_mintedNFTs[tokenId].owner == msg.sender, "You are not the owner of NFT");
         require(s_mintedNFTs[tokenId].isListed, "Not Listed");
 
         uint256 length = s_allListedNFTs.length;
@@ -192,21 +199,16 @@ contract MonkeyNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Owna
         }
     }
 
-    //Returns the length of listed NFTs
-    function getListedNFTLength() public view returns (uint256) {
-        return s_allListedNFTs.length;
-    }
-
     /*
      @dev This returns the all the nft that the user holds
     */
-    function getMyNFTs() public view returns (NFTdetails[] memory) {
+
+    function myNFTs() public returns (NFTdetails[] memory) {
         uint256 tokenId = _tokenIdCounter.current();
-        NFTdetails[] memory yourNFTs = new NFTdetails[](3);
         for (uint256 i = 0; i <= tokenId; i++) {
             NFTdetails storage item = s_mintedNFTs[i];
             if (item.owner == msg.sender) {
-                yourNFTs[i] = item;
+                yourNFTs.push(item);
             }
         }
         return yourNFTs;
@@ -306,6 +308,24 @@ contract MonkeyNFT is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Owna
 
     function getMintedNFT(uint256 tokenId) external view returns (NFTdetails memory) {
         return s_mintedNFTs[tokenId];
+    }
+
+    function getMintedNftForTesting(uint256 tokenId) external returns (NFTdetails memory) {
+        forTestingPurposeOnly = s_mintedNFTs[tokenId];
+        return forTestingPurposeOnly;
+    }
+
+    function getMyNFTsForTesting(uint256 id) external returns (NFTdetails memory) {
+        forTestingPurposeOnly = yourNFTs[id];
+        return forTestingPurposeOnly;
+    }
+
+    function getListedNFTLength() public view returns (uint256) {
+        return s_allListedNFTs.length;
+    }
+
+    function getMyNftLength() external view returns (uint256) {
+        return yourNFTs.length;
     }
 }
 
